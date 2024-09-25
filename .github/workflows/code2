@@ -1,0 +1,50 @@
+#Twitter Sentiment Analysis
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+lemmatizer = WordNetLemmatizer()
+
+def preprocess_text(text):
+    tokens = word_tokenize(text)
+    tokens = [t for t in tokens if t.lower() not in stopwords.words('english')]
+    tokens = [lemmatizer.lemmatize(t) for t in tokens]
+    return ' '.join(tokens)
+
+import pandas as pd
+
+train_df = pd.read_csv('twitter_training.csv')
+
+val_df = pd.read_csv('twitter_validation.csv')
+
+print(train_df.columns)
+text_column = 3 
+sentiment_column = 2  
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.model_selection import train_test_split
+
+vectorizer = TfidfVectorizer()
+X_train, X_val, y_train, y_val = train_test_split(train_df.iloc[:, text_column].values, train_df.iloc[:, sentiment_column].values, test_size=0.2, random_state=42)
+
+X_train_tfidf = vectorizer.fit_transform(X_train.astype(str))
+X_val_tfidf = vectorizer.transform(X_val.astype(str))
+
+nb = MultinomialNB()
+nb.fit(X_train_tfidf, y_train)
+
+y_pred = nb.predict(X_val_tfidf)
+
+import matplotlib.pyplot as plt
+
+plt.bar(train_df.iloc[:, sentiment_column].value_counts().index, train_df.iloc[:, sentiment_column].value_counts().values)
+plt.xlabel('Sentiment')
+plt.ylabel('Count')
+plt.title('Sentiment Distribution')
+plt.show()
